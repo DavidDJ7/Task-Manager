@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Manager - Goals</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    .tab-active {
+      border-bottom-width: 2px;
+      border-color: #f59e0b;
+      color: #b45309;
+    }
+    .priority-high {
+      border-left: 4px solid #ef4444;
+    }
+    .priority-medium {
+      border-left: 4px solid #f59e0b;
+    }
+    .priority-low {
+      border-left: 4px solid #10b981;
+    }
+    .task-card {
+      transition: all 0.2s ease;
+    }
+    .task-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .dark-mode {
+      background-color: #1f2937;
+      color: #f3f4f6;
+    }
+    .dark-mode .bg-white {
+      background-color: #374151;
+    }
+    .dark-mode .border-gray-200 {
+      border-color: #4b5563;
+    }
+    .dark-mode .text-gray-700 {
+      color: #e5e7eb;
+    }
+    .dark-mode .text-gray-500 {
+      color: #9ca3af;
+    }
+    .dark-mode .text-gray-400 {
+      color: #6b7280;
+    }
+    .drag-handle {
+      cursor: move;
+      opacity: 0.5;
+    }
+    .drag-handle:hover {
+      opacity: 1;
+    }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gray-50">
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 hidden p-4 rounded-md shadow-lg z-50">
+    <div class="flex items-center">
+      <span id="toast-icon" class="mr-2"></span>
+      <span id="toast-message"></span>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <div id="confirm-dialog" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full dark:bg-gray-700">
+      <h3 id="confirm-title" class="text-lg font-bold mb-4 dark:text-white"></h3>
+      <p id="confirm-message" class="mb-6 dark:text-gray-200"></p>
+      <div class="flex justify-end space-x-4">
+        <button id="confirm-cancel" class="px-4 py-2 border rounded-md dark:border-gray-600 dark:text-gray-200">Cancel</button>
+        <button id="confirm-ok" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Edit Modal -->
+  <div id="task-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full dark:bg-gray-700">
+      <h3 id="task-modal-title" class="text-lg font-bold mb-4 dark:text-white">Edit Task</h3>
+      <form id="task-form" class="space-y-4">
+        <input type="hidden" id="task-id">
+        <div>
+          <label for="edit-task-title" class="block text-sm font-medium mb-1 dark:text-gray-200">Title</label>
+          <input type="text" id="edit-task-title" required class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+        </div>
+        <div>
+          <label for="edit-task-desc" class="block text-sm font-medium mb-1 dark:text-gray-200">Description</label>
+          <textarea id="edit-task-desc" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></textarea>
+        </div>
+        <div>
+          <label for="edit-task-deadline" class="block text-sm font-medium mb-1 dark:text-gray-200">Deadline</label>
+          <input type="datetime-local" id="edit-task-deadline" required class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+        </div>
+        <div>
+          <label for="edit-task-priority" class="block text-sm font-medium mb-1 dark:text-gray-200">Priority</label>
+          <select id="edit-task-priority" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="Low">Low Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="High">High Priority</option>
+          </select>
+        </div>
+        <div>
+          <label for="edit-task-category" class="block text-sm font-medium mb-1 dark:text-gray-200">Category</label>
+          <select id="edit-task-category" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-4">
+          <button type="button" onclick="closeTaskModal()" class="px-4 py-2 border rounded-md dark:border-gray-600 dark:text-gray-200">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  {% include 'partials/navbar.html' %}
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+    <!-- Left Section: Tasks -->
+    <div class="flex-grow">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-yellow-700 dark:text-yellow-500">Goal Planner</h1>
+        <button onclick="openTaskModal()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md font-semibold flex items-center">
+          <i class="fas fa-plus mr-2"></i> New Task
+        </button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex justify-center space-x-4 mb-6">
+        <button onclick="switchTab('daily-tasks')" id="tab-daily" class="px-4 py-2 font-semibold text-gray-700 hover:text-yellow-700 tab-active dark:hover:text-yellow-400 dark:text-gray-300">Daily</button>
+        <button onclick="switchTab('weekly-tasks')" id="tab-weekly" class="px-4 py-2 font-semibold text-gray-700 hover:text-yellow-700 dark:hover:text-yellow-400 dark:text-gray-300">Weekly</button>
+        <button onclick="switchTab('monthly-tasks')" id="tab-monthly" class="px-4 py-2 font-semibold text-gray-700 hover:text-yellow-700 dark:hover:text-yellow-400 dark:text-gray-300">Monthly</button>
+        <button onclick="switchTab('yearly-tasks')" id="tab-yearly" class="px-4 py-2 font-semibold text-gray-700 hover:text-yellow-700 dark:hover:text-yellow-400 dark:text-gray-300">Yearly</button>
+      </div>
+
+      <!-- Task Filters -->
+      <div class="flex flex-wrap gap-4 mb-6">
+        <div class="flex-1 min-w-[200px]">
+          <label for="priority-filter" class="block text-sm font-medium mb-1 dark:text-gray-300">Priority</label>
+          <select id="priority-filter" onchange="filterTasks()" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="all">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+          <label for="status-filter" class="block text-sm font-medium mb-1 dark:text-gray-300">Status</label>
+          <select id="status-filter" onchange="filterTasks()" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+          <label for="date-filter" class="block text-sm font-medium mb-1 dark:text-gray-300">Due Date</label>
+          <select id="date-filter" onchange="filterTasks()" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="overdue">Overdue</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Task Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+          <div class="text-sm text-gray-500 dark:text-gray-400">Total Tasks</div>
+          <div class="text-2xl font-bold dark:text-white" id="total-tasks">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+          <div class="text-sm text-gray-500 dark:text-gray-400">Completed</div>
+          <div class="text-2xl font-bold text-green-600 dark:text-green-400" id="completed-tasks">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+          <div class="text-sm text-gray-500 dark:text-gray-400">In Progress</div>
+          <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="inprogress-tasks">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+          <div class="text-sm text-gray-500 dark:text-gray-400">Overdue</div>
+          <div class="text-2xl font-bold text-red-600 dark:text-red-400" id="overdue-tasks">0</div>
+        </div>
+      </div>
+
+      <!-- Task List -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden dark:bg-gray-700 dark:border-gray-600">
+        <div id="task-lists">
+          <!-- Daily Tasks -->
+          <div id="daily-tasks" class="task-tab">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+              <h3 class="text-lg font-semibold dark:text-white">Daily Tasks</h3>
+            </div>
+            <ul id="daily" class="divide-y divide-gray-200 dark:divide-gray-600">
+              <li class="p-4 task-card priority-medium">
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 pt-1 mr-3">
+                    <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 dark:border-gray-500">
+                  </div>
+                  <div class="flex-grow">
+                    <div class="flex items-center justify-between">
+                      <span class="font-semibold dark:text-white">Complete Project Report</span>
+                      <div class="flex space-x-2">
+                        <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Medium</span>
+                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Work</span>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Prepare the final report for the project.</p>
+                    <div class="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      <i class="far fa-calendar-alt mr-1"></i>
+                      <span>Due: Apr 20, 2025 at 10:00 AM</span>
+                    </div>
+                  </div>
+                  <div class="flex-shrink-0 ml-4">
+                    <div class="flex space-x-2">
+                      <button onclick="editTask('64b8f5e2e4b0c8a1d2e4b0c9')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button onclick="deleteTask('64b8f5e2e4b0c8a1d2e4b0c9')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Weekly Tasks -->
+          <div id="weekly-tasks" class="task-tab hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+              <h3 class="text-lg font-semibold dark:text-white">Weekly Tasks</h3>
+            </div>
+            <ul id="weekly" class="divide-y divide-gray-200 dark:divide-gray-600"></ul>
+          </div>
+
+          <!-- Monthly Tasks -->
+          <div id="monthly-tasks" class="task-tab hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+              <h3 class="text-lg font-semibold dark:text-white">Monthly Tasks</h3>
+            </div>
+            <ul id="monthly" class="divide-y divide-gray-200 dark:divide-gray-600"></ul>
+          </div>
+
+          <!-- Yearly Tasks -->
+          <div id="yearly-tasks" class="task-tab hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+              <h3 class="text-lg font-semibold dark:text-white">Yearly Tasks</h3>
+            </div>
+            <ul id="yearly" class="divide-y divide-gray-200 dark:divide-gray-600"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section: Daily Routine & Reminders -->
+    <div class="w-full lg:w-1/3 space-y-6">
+      <!-- Daily Routine -->
+      <div id="daily-routine" class="bg-white border border-gray-300 rounded-md shadow-md p-4 dark:bg-gray-700 dark:border-gray-600">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-yellow-700 dark:text-yellow-500">Daily Routine</h2>
+          <div class="flex space-x-2">
+            <button id="add-routine-template" onclick="showRoutineTemplates()" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-md dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">
+              <i class="fas fa-layer-group mr-1"></i> Templates
+            </button>
+          </div>
+        </div>
+
+        <!-- Date Navigation -->
+        <div class="flex flex-col items-center mb-4">
+          <div class="flex justify-between items-center space-x-2">
+            <button onclick="setRoutineDate('yesterday')" class="text-sm bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">
+              <i class="fas fa-chevron-left mr-1"></i> Yesterday
+            </button>
+            <button onclick="setRoutineDate('today')" class="text-sm bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md font-semibold">
+              Today
+            </button>
+            <button onclick="setRoutineDate('tomorrow')" class="text-sm bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">
+              Tomorrow <i class="fas fa-chevron-right ml-1"></i>
+            </button>
+          </div>
+          <div id="routine-date-display" class="mt-2 text-lg font-medium dark:text-white"></div>
+        </div>
+
+        <!-- Routine Progress -->
+        <div class="mb-4">
+          <div class="flex justify-between text-sm mb-1 dark:text-gray-300">
+            <span>Daily Progress</span>
+            <span id="routine-progress-text">0%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-600">
+            <div id="routine-progress-bar" class="bg-yellow-500 h-2.5 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Routine Time Groups -->
+        <div id="routine-time-groups">
+          <div class="routine-time-group">
+            <h3 class="text-lg font-semibold dark:text-white">Morning (<span class="morning-count">0</span>)</h3>
+            <ul id="routine-morning" class="space-y-2"></ul>
+          </div>
+          <div class="routine-time-group">
+            <h3 class="text-lg font-semibold dark:text-white">Afternoon (<span class="afternoon-count">0</span>)</h3>
+            <ul id="routine-afternoon" class="space-y-2"></ul>
+          </div>
+          <div class="routine-time-group">
+            <h3 class="text-lg font-semibold dark:text-white">Evening (<span class="evening-count">0</span>)</h3>
+            <ul id="routine-evening" class="space-y-2"></ul>
+          </div>
+          <div class="routine-time-group">
+            <h3 class="text-lg font-semibold dark:text-white">Night (<span class="night-count">0</span>)</h3>
+            <ul id="routine-night" class="space-y-2"></ul>
+          </div>
+        </div>
+        <div id="routine-day-progress" class="text-sm text-gray-500 dark:text-gray-300 mt-4"></div>
+
+        <!-- Routine List -->
+        <ul id="routine-list" class="space-y-2">
+          <li class="text-center py-4 text-gray-500 dark:text-gray-400">No tasks for today. Add some to get started!</li>
+        </ul>
+
+        <!-- Add Routine Task -->
+        <form id="routine-form" class="mt-4 flex space-x-2">
+          <input type="text" id="routine-task" placeholder="Add a routine task..." class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-400">
+          <input type="time" id="routine-time" class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+          <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md font-semibold">
+            <i class="fas fa-plus"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- Reminders Section -->
+      <div id="reminders" class="bg-white border border-gray-300 rounded-md shadow-md p-4 dark:bg-gray-700 dark:border-gray-600">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-yellow-700 dark:text-yellow-500">Reminders</h2>
+          <button onclick="showAddReminderForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md font-semibold">
+            <i class="fas fa-plus mr-1"></i> Add Reminder
+          </button>
+        </div>
+
+        <!-- Reminder List -->
+        <ul id="reminder-list" class="space-y-2">
+          <li class="p-3 bg-gray-50 rounded-md border border-gray-200 dark:bg-gray-600 dark:border-gray-500">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-semibold dark:text-white">Team Meeting</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-300">Weekly sync with the development team</p>
+                <div class="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <i class="far fa-clock mr-1"></i>
+                  <span>Today at 2:00 PM</span>
+                </div>
+              </div>
+              <button onclick="deleteReminder('rem-1')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </li>
+        </ul>
+
+        <!-- Add Reminder Form -->
+        <form id="add-reminder-form" class="hidden mt-4 space-y-3">
+          <div>
+            <label for="reminder-title" class="block text-sm font-medium mb-1 dark:text-gray-300">Title</label>
+            <input type="text" id="reminder-title" required class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+          </div>
+          <div>
+            <label for="reminder-description" class="block text-sm font-medium mb-1 dark:text-gray-300">Description</label>
+            <textarea id="reminder-description" class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></textarea>
+          </div>
+          <div>
+            <label for="reminder-due-date" class="block text-sm font-medium mb-1 dark:text-gray-300">Due Date</label>
+            <input type="datetime-local" id="reminder-due-date" required class="w-full px-4 py-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+          </div>
+          <div class="flex justify-end space-x-2">
+            <button type="button" onclick="hideAddReminderForm()" class="px-4 py-2 border rounded-md dark:border-gray-600 dark:text-gray-200">Cancel</button>
+            <button type="button" onclick="addReminder()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="w-full text-center py-4 bg-white/80 border-t border-gray-300 dark:bg-gray-800/80 dark:border-gray-700">
+    <p class="text-sm text-gray-700 dark:text-gray-300">&copy; 2025 Task Manager Pro. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const state = {
+      currentTab: 'daily',
+      selectedRoutineDate: new Date(),
+      tasks: {
+        daily: [],
+        weekly: [],
+        monthly: [],
+        yearly: []
+      },
+      routines: {},
+      reminders: [],
+      darkMode: localStorage.getItem('darkMode') === 'true' || 
+                (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    };
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function () {
+      initTheme();
+      initEventListeners();
+      loadData(); // Load saved data
+      switchTab(state.currentTab);
+      updateRoutineDateDisplay();
+      loadRoutineForSelectedDate(); // Load routine for the current date
+      updateTaskStats();
+    });
+
+    // Initialize theme
+    function initTheme() {
+      if (state.darkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark-mode');
+      }
+      document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+      document.getElementById('profile-menu-button').addEventListener('click', toggleProfileMenu);
+    }
+
+    // Toggle dark/light theme
+    function toggleTheme() {
+      state.darkMode = !state.darkMode;
+      localStorage.setItem('darkMode', state.darkMode);
+      if (state.darkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark-mode');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark-mode');
+      }
+    }
+
+    // Toggle profile menu
+    function toggleProfileMenu() {
+      const menu = document.getElementById('profile-menu');
+      menu.classList.toggle('hidden');
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', function closeMenu(e) {
+        if (!e.target.closest('#profile-menu') && e.target.id !== 'profile-menu-button') {
+          menu.classList.add('hidden');
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }
+
+    // Initialize event listeners
+    function initEventListeners() {
+      // Routine form
+      document.getElementById('routine-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addRoutineTask();
+      });
+
+      // Task form
+      document.getElementById('task-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveTask();
+      });
+
+      // Confirm dialog buttons
+      document.getElementById('confirm-cancel').addEventListener('click', function() {
+        document.getElementById('confirm-dialog').classList.add('hidden');
+      });
+
+      // Routine template button
+      document.getElementById('add-routine-template').addEventListener('click', showRoutineTemplates);
+
+      // Make task lists sortable
+      ['daily', 'weekly', 'monthly', 'yearly'].forEach(category => {
+        new Sortable(document.getElementById(category), {
+          animation: 150,
+          handle: '.drag-handle',
+          onEnd: function() {
+            updateTaskOrder(category);
+          }
+        });
+      });
+    }
+
+    // Load initial data
+    function loadData() {
+      fetchTasks();
+      const savedRoutines = localStorage.getItem('routines');
+      const savedReminders = localStorage.getItem('reminders');
+
+      if (savedRoutines) {
+        state.routines = JSON.parse(savedRoutines); // Load routines from local storage
+      } else {
+        // Initialize with a sample routine if no data exists
+        const today = formatDate(new Date());
+        state.routines[today] = [
+          { id: 'rtn-1', task: 'Morning Exercise', time: '07:00', completed: false },
+          { id: 'rtn-2', task: 'Team Meeting', time: '10:00', completed: false }
+        ];
+      }
+
+      if (savedReminders) {
+        state.reminders = JSON.parse(savedReminders);
+      } else {
+        // Initialize with a sample reminder if no data exists
+        state.reminders = [
+          {
+            id: 'rem-1',
+            title: 'Team Meeting',
+            description: 'Weekly sync with the development team',
+            dueDate: new Date(new Date().setHours(14, 0, 0, 0)).toISOString(),
+            createdAt: new Date().toISOString()
+          }
+        ];
+      }
+
+      // Render all data
+      renderRoutine(state.routines[formatDate(state.selectedRoutineDate)] || []);
+      renderReminders();
+    }
+
+    // Fetch tasks from the backend
+    async function fetchTasks() {
+      try {
+        const response = await fetch('/api/tasks');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tasks');
+        }
+        const tasks = await response.json();
+        renderTasks(tasks);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        showToast('Failed to load tasks. Please try again.', 'error');
+      }
+    }
+
+    // Fetch routines from the backend
+    async function fetchRoutines(date) {
+      try {
+        const response = await fetch(`/api/routines/${date}`);
+        const routines = await response.json();
+        renderRoutineTasks(routines);
+      } catch (error) {
+        console.error('Error fetching routines:', error);
+      }
+    }
+
+    // Render tasks in the Goal Planner
+    function renderTasks(tasks) {
+      const categories = ['daily', 'weekly', 'monthly', 'yearly'];
+      categories.forEach(category => {
+        const taskList = document.getElementById(category);
+        taskList.innerHTML = ''; // Clear existing tasks
+      });
+
+      tasks.forEach(task => {
+        const taskList = document.getElementById(task.category);
+        if (taskList) {
+          const taskItem = document.createElement('li');
+          taskItem.className = `p-4 task-card priority-${task.priority.toLowerCase()}`;
+          taskItem.innerHTML = `
+            <div class="flex items-start">
+              <div class="flex-shrink-0 pt-1 mr-3">
+                <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} 
+                  onchange="toggleTaskComplete('${task._id}')"
+                  class="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 dark:border-gray-500">
+              </div>
+              <div class="flex-grow">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold dark:text-white">${task.title}</span>
+                  <div class="flex space-x-2">
+                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">${task.priority}</span>
+                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">${task.category}</span>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${task.description}</p>
+                <div class="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  <i class="far fa-calendar-alt mr-1"></i>
+                  <span>Due: ${new Date(task.deadline).toLocaleString()}</span>
+                </div>
+              </div>
+              <div class="flex-shrink-0 ml-4">
+                <div class="flex space-x-2">
+                  <button onclick="editTask('${task._id}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button onclick="deleteTask('${task._id}')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          taskList.appendChild(taskItem);
+        }
+      });
+    }
+
+    // Render routine tasks in the Daily Routine Manager
+    function renderRoutineTasks(routines) {
+      const routineList = document.getElementById('routine-tasks');
+      routineList.innerHTML = '';
+      routines.forEach(routine => {
+        const routineItem = document.createElement('li');
+        routineItem.className = 'p-4 border-l-4 border-blue-500 bg-gray-50 rounded-md shadow-sm';
+        routineItem.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="font-medium">${routine.task}</p>
+              <p class="text-sm text-gray-600">${routine.time}</p>
+            </div>
+          </div>
+        `;
+        routineList.appendChild(routineItem);
+      });
+    }
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchTasks();
+      const today = new Date().toISOString().split('T')[0];
+      fetchRoutines(today);
+    });
+
+    // Open task modal for adding/editing
+    function openTaskModal(taskId = null) {
+      const modal = document.getElementById('task-modal');
+      const form = document.getElementById('task-form');
+      const title = document.getElementById('task-modal-title');
+      
+      if (taskId) {
+        // Edit mode
+        title.textContent = 'Edit Task';
+        const task = findTaskById(taskId);
+        if (task) {
+          document.getElementById('task-id').value = task.id;
+          document.getElementById('edit-task-title').value = task.title;
+          document.getElementById('edit-task-desc').value = task.description || '';
+          document.getElementById('edit-task-deadline').value = formatDateTimeLocal(task.deadline);
+          document.getElementById('edit-task-priority').value = task.priority;
+          document.getElementById('edit-task-category').value = task.category;
+        }
+      } else {
+        // Add mode
+        title.textContent = 'Add New Task';
+        form.reset();
+        document.getElementById('task-id').value = '';
+        document.getElementById('edit-task-category').value = state.currentTab;
+        document.getElementById('edit-task-deadline').value = formatDateTimeLocal(new Date(new Date().setHours(new Date().getHours() + 1)));
+      }
+      
+      modal.classList.remove('hidden');
+    }
+
+    // Close task modal
+    function closeTaskModal() {
+      document.getElementById('task-modal').classList.add('hidden');
+    }
+
+    // Save task (add or update)
+    async function saveTask() {
+      const taskId = document.getElementById('task-id').value;
+      const title = document.getElementById('edit-task-title').value.trim();
+      const description = document.getElementById('edit-task-desc').value.trim();
+      const deadline = document.getElementById('edit-task-deadline').value;
+      const priority = document.getElementById('edit-task-priority').value;
+      const category = document.getElementById('edit-task-category').value;
+
+      if (!title || !deadline) {
+        showToast('Title and deadline are required', 'error');
+        return;
+      }
+
+      const task = {
+        title,
+        description,
+        deadline,
+        priority,
+        category
+      };
+
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: taskId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        });
+        if (!response.ok) {
+          throw new Error('Failed to save task');
+        }
+        showToast(taskId ? 'Task updated successfully' : 'Task added successfully', 'success');
+        fetchTasks(); // Refresh the task list
+        closeTaskModal();
+      } catch (error) {
+        console.error('Error saving task:', error);
+        showToast('Failed to save task. Please try again.', 'error');
+      }
+    }
+
+    // Find task by ID
+    function findTaskById(taskId) {
+      for (const category in state.tasks) {
+        const task = state.tasks[category].find(t => t.id === taskId);
+        if (task) return task;
+      }
+      return null;
+    }
+
+    // Toggle task completion status
+    function toggleTaskComplete(taskId) {
+      const task = findTaskById(taskId);
+      if (task) {
+        task.status = task.status === 'completed' ? 'pending' : 'completed';
+        task.updatedAt = new Date().toISOString();
+        saveData();
+        renderAllTasks();
+        showToast(`Task marked as ${task.status}`, 'success');
+      }
+    }
+
+    // Delete task with confirmation
+    async function deleteTask(taskId) {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) {
+          throw new Error('Failed to delete task');
+        }
+        showToast('Task deleted successfully', 'success');
+        fetchTasks(); // Refresh the task list
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        showToast('Failed to delete task. Please try again.', 'error');
+      }
+    }
+
+    // Update task order after drag and drop
+    function updateTaskOrder(category) {
+      const taskList = document.getElementById(category);
+      const taskIds = Array.from(taskList.children).map(li => li.dataset.taskId);
+      
+      // Reorder tasks in state according to new order
+      state.tasks[category] = taskIds.map(id => 
+      state.tasks[category].find(task => task.id === id))
+      .filter(task => task !== undefined);
+      
+      saveData();
+      showToast('Task order updated', 'success');
+    }
+
+    // Update task statistics
+    function updateTaskStats() {
+      let total = 0;
+      let completed = 0;
+      let inProgress = 0;
+      let overdue = 0;
+      
+      Object.values(state.tasks).forEach(category => {
+        category.forEach(task => {
+          total++;
+          if (task.status === 'completed') completed++;
+          if (task.status === 'in-progress') inProgress++;
+          if (new Date(task.deadline) < new Date() && task.status !== 'completed') overdue++;
+        });
+      });
+      
+      document.getElementById('total-tasks').textContent = total;
+      document.getElementById('completed-tasks').textContent = completed;
+      document.getElementById('inprogress-tasks').textContent = inProgress;
+      document.getElementById('overdue-tasks').textContent = overdue;
+    }
+
+    // Enhanced Routine Functions
+    function setRoutineDate(type) {
+      const today = new Date();
+      const dateKey = formatDate(state.selectedRoutineDate);
+      
+      // Save any changes to current day's routine before switching
+      if (state.routines[dateKey]) {
+        saveData();
+      }
+
+      if (type === 'today') {
+        state.selectedRoutineDate = new Date(today);
+      } else if (type === 'tomorrow') {
+        state.selectedRoutineDate = new Date(today);
+        state.selectedRoutineDate.setDate(state.selectedRoutineDate.getDate() + 1);
+      } else if (type === 'yesterday') {
+        state.selectedRoutineDate = new Date(today);
+        state.selectedRoutineDate.setDate(state.selectedRoutineDate.getDate() - 1);
+      } else if (type === 'next-week') {
+        state.selectedRoutineDate = new Date(today);
+        state.selectedRoutineDate.setDate(state.selectedRoutineDate.getDate() + 7);
+      } else if (type === 'prev-week') {
+        state.selectedRoutineDate = new Date(today);
+        state.selectedRoutineDate.setDate(state.selectedRoutineDate.getDate() - 7);
+      }
+
+      updateRoutineDateDisplay();
+      loadRoutineForSelectedDate();
+    }
+
+    function loadRoutineForSelectedDate() {
+      const dateKey = formatDate(state.selectedRoutineDate);
+      if (state.routines[dateKey]) {
+        renderRoutine(state.routines[dateKey]);
+      } else {
+        fetchRoutineFromDB(dateKey); // Fetch from the database if not in state
+      }
+    }
+
+    function updateRoutineDateDisplay() {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const displayDate = state.selectedRoutineDate.toLocaleDateString(undefined, options);
+      
+      // Check if it's today, yesterday, or tomorrow
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const selectedDate = new Date(state.selectedRoutineDate);
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      const diffDays = Math.round((selectedDate - today) / (1000 * 60 * 60 * 24));
+      
+      let displayText = displayDate;
+      if (diffDays === 0) displayText = `Today, ${displayDate}`;
+      else if (diffDays === -1) displayText = `Yesterday, ${displayDate}`;
+      else if (diffDays === 1) displayText = `Tomorrow, ${displayDate}`;
+      
+      document.getElementById('routine-date-display').textContent = displayText;
+    }
+
+    function renderRoutine(tasks) {
+      // Clear all time groups
+      document.querySelectorAll('.routine-time-group ul').forEach(el => el.innerHTML = '');
+      document.querySelectorAll('.routine-time-group .count').forEach(el => el.textContent = '0');
+      
+      if (tasks.length === 0) {
+        document.getElementById('routine-day-progress').textContent = '0/0 tasks';
+        updateProgress(0);
+        return;
+      }
+      
+      // Sort tasks by time
+      tasks.sort((a, b) => {
+        const timeA = a.time.split(':').map(Number);
+        const timeB = b.time.split(':').map(Number);
+        return timeA[0] - timeB[0] || timeA[1] - timeB[1];
+      });
+      
+      // Group tasks by time of day
+      const timeGroups = {
+        morning: { element: document.getElementById('routine-morning'), count: 0 },
+        afternoon: { element: document.getElementById('routine-afternoon'), count: 0 },
+        evening: { element: document.getElementById('routine-evening'), count: 0 },
+        night: { element: document.getElementById('routine-night'), count: 0 }
+      };
+      
+      tasks.forEach(task => {
+        const [hours] = task.time.split(':').map(Number);
+        let timeGroup;
+        
+        if (hours >= 5 && hours < 11) timeGroup = 'morning';
+        else if (hours >= 11 && hours < 17) timeGroup = 'afternoon';
+        else if (hours >= 17 && hours < 23) timeGroup = 'evening';
+        else timeGroup = 'night';
+        
+        const taskItem = createRoutineTaskElement(task);
+        timeGroups[timeGroup].element.appendChild(taskItem);
+        timeGroups[timeGroup].count++;
+      });
+      
+      // Update counts
+      document.querySelector('.morning-count').textContent = timeGroups.morning.count;
+      document.querySelector('.afternoon-count').textContent = timeGroups.afternoon.count;
+      document.querySelector('.evening-count').textContent = timeGroups.evening.count;
+      document.querySelector('.night-count').textContent = timeGroups.night.count;
+      
+      // Update day progress
+      const completedCount = tasks.filter(t => t.completed).length;
+      document.getElementById('routine-day-progress').textContent = `${completedCount}/${tasks.length} tasks`;
+      
+      // Update progress bar
+      const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+      updateProgress(progress);
+    }
+
+    function createRoutineTaskElement(task) {
+      const item = document.createElement('li');
+      item.className = `routine-task flex items-center p-2 rounded-md border ${
+        task.completed ? 
+        'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 
+        'bg-gray-50 border-gray-200 dark:bg-gray-600 dark:border-gray-500'
+      }`;
+      item.dataset.taskId = task.id;
+      
+      item.innerHTML = `
+        <div class="flex-grow flex items-center">
+          <span class="drag-handle mr-2 text-gray-400 dark:text-gray-300 cursor-move">
+            <i class="fas fa-grip-vertical"></i>
+          </span>
+          <div class="flex-grow flex items-center">
+            <input type="checkbox" ${task.completed ? 'checked' : ''} 
+              onchange="toggleRoutineComplete('${task.id}')"
+              class="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 dark:border-gray-500 mr-2">
+            <div>
+              <div class="${task.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'dark:text-white'}">
+                <span class="font-medium">${task.time}</span> - ${task.task}
+              </div>
+              ${task.note ? `
+
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  ${task.note}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+          <div class="flex space-x-2 ml-2">
+            <button onclick="editRoutineTask('${task.id}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button onclick="deleteRoutineTask('${task.id}')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      
+      return item;
+    }
+
+    // Routine functions
+    function toggleRoutineComplete(taskId) {
+      const dateKey = formatDate(state.selectedRoutineDate);
+      if (!state.routines[dateKey]) return;
+      
+      const task = state.routines[dateKey].find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        task.updatedAt = new Date().toISOString();
+        saveDataToDB(dateKey, state.routines[dateKey]);
+        
+        const completedCount = state.routines[dateKey].filter(t => t.completed).length;
+        const progress = Math.round((completedCount / state.routines[dateKey].length) * 100);
+        updateProgress(progress);
+        
+        showToast(`Task marked as ${task.completed ? 'completed' : 'pending'}`, 'success');
+      }
+    }
+
+    function editRoutineTask(taskId) {
+      const dateKey = formatDate(state.selectedRoutineDate);
+      if (!state.routines[dateKey]) return;
+      
+      const task = state.routines[dateKey].find(t => t.id === taskId);
+      if (!task) return;
+      
+      const newTask = prompt('Edit task description:', task.task);
+      const newTime = prompt('Edit task time:', task.time);
+      const newNote = prompt('Edit task note (optional):', task.note || '');
+      
+      if (newTask === null || newTime === null) return;
+      
+      if (!newTask || !newTime) {
+        showToast('Task and time are required', 'error');
+        return;
+      }
+      
+      task.task = newTask;
+      task.time = newTime;
+      if (newNote) task.note = newNote;
+      task.updatedAt = new Date().toISOString();
+      
+      saveDataToDB(dateKey, state.routines[dateKey]);
+      renderRoutine(state.routines[dateKey]);
+      showToast('Task updated successfully', 'success');
+    }
+
+    function deleteRoutineTask(taskId) {
+      showConfirm(
+        'Delete Routine Task', 
+        'Are you sure you want to delete this routine task?',
+        function() {
+          const dateKey = formatDate(state.selectedRoutineDate);
+          if (state.routines[dateKey]) {
+            state.routines[dateKey] = state.routines[dateKey].filter(t => t.id !== taskId);
+            saveDataToDB(dateKey, state.routines[dateKey]);
+            renderRoutine(state.routines[dateKey] || []);
+            showToast('Routine task deleted', 'success');
+          }
+        }
+      );
+    }
+
+    function updateProgress(progress) {
+      document.getElementById('routine-progress-text').textContent = `${progress}%`;
+      const progressBar = document.getElementById('routine-progress-bar');
+      progressBar.style.width = `${progress}%`;
+
+      // Update color based on progress
+      progressBar.className = 'h-2.5 rounded-full';
+      if (progress < 30) {
+        progressBar.classList.add('bg-red-500');
+      } else if (progress < 70) {
+        progressBar.classList.add('bg-yellow-500');
+      } else {
+        progressBar.classList.add('bg-green-500');
+      }
+    }
+
+    function showRoutineTemplates() {
+      const dateKey = formatDate(state.selectedRoutineDate);
+
+      // Default template
+      const defaultTemplate = [
+        { id: 'rtn-temp-1', task: 'Wake up', time: '07:00', completed: false },
+        { id: 'rtn-temp-2', task: 'Morning Exercise', time: '07:30', completed: false },
+        { id: 'rtn-temp-3', task: 'Breakfast', time: '08:00', completed: false },
+        { id: 'rtn-temp-4', task: 'Plan the Day', time: '08:30', completed: false },
+      ];
+
+      // Add the template to the selected date's routine
+      if (!state.routines[dateKey]) {
+        state.routines[dateKey] = [];
+      }
+      state.routines[dateKey] = [...defaultTemplate, ...state.routines[dateKey]];
+
+      saveDataToDB(dateKey, state.routines[dateKey]); // Save to the database
+      renderRoutine(state.routines[dateKey]); // Render the updated routine
+      showToast('Default template loaded successfully', 'success');
+    }
+
+    async function fetchRoutineFromDB(dateKey) {
+      try {
+        const response = await fetch(`/api/routines/${dateKey}`);
+        if (response.ok) {
+          const routine = await response.json();
+          state.routines[dateKey] = routine;
+          renderRoutine(routine);
+        } else {
+          console.error('Failed to fetch routine:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching routine:', error);
+      }
+    }
+
+    async function saveDataToDB(dateKey, routine) {
+      try {
+        const response = await fetch(`/api/routines/${dateKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tasks: routine }),
+        });
+        if (!response.ok) {
+          console.error('Failed to save routine:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error saving routine:', error);
+      }
+    }
+
+    // Reminder functions
+    function showAddReminderForm() {
+      document.getElementById('add-reminder-form').classList.remove('hidden');
+      document.getElementById('reminder-due-date').value = formatDateTimeLocal(new Date(new Date().setHours(new Date().getHours() + 1)));
+    }
+
+    function hideAddReminderForm() {
+      document.getElementById('add-reminder-form').classList.add('hidden');
+      document.getElementById('add-reminder-form').reset();
+    }
+
+    function addReminder() {
+      const title = document.getElementById('reminder-title').value.trim();
+      const description = document.getElementById('reminder-description').value.trim();
+      const dueDate = document.getElementById('reminder-due-date').value;
+      
+      if (!title || !dueDate) {
+        showToast('Title and due date are required', 'error');
+        return;
+      }
+      
+      const newReminder = {
+        id: 'rem-' + Date.now(),
+        title,
+        description,
+        dueDate,
+        createdAt: new Date().toISOString()
+      };
+      
+      state.reminders.push(newReminder);
+      saveData();
+      renderReminders();
+      hideAddReminderForm();
+      showToast('Reminder added successfully', 'success');
+    }
+
+    function renderReminders() {
+      const reminderList = document.getElementById('reminder-list');
+      reminderList.innerHTML = '';
+      
+      if (state.reminders.length === 0) {
+        reminderList.innerHTML = `
+          <li class="text-center py-4 text-gray-500 dark:text-gray-400">
+            No reminders. Add some to stay on track!
+          </li>
+        `;
+        return;
+      }
+      
+      // Sort reminders by due date
+      const sortedReminders = [...state.reminders].sort((a, b) => 
+        new Date(a.dueDate) - new Date(b.dueDate));
+      
+      sortedReminders.forEach(reminder => {
+        const isOverdue = new Date(reminder.dueDate) < new Date();
+        
+        const item = document.createElement('li');
+        item.className = `p-3 rounded-md border ${
+          isOverdue ? 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800' : 
+          'bg-gray-50 border-gray-200 dark:bg-gray-600 dark:border-gray-500'
+        }`;
+        item.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-semibold dark:text-white">${reminder.title}</h4>
+              ${reminder.description ? `
+                <p class="text-sm text-gray-600 dark:text-gray-300">
+                  ${reminder.description}
+                </p>
+              ` : ''}
+              <div class="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <i class="far fa-clock mr-1"></i>
+                <span>${formatDateTime(reminder.dueDate)}</span>
+                ${isOverdue ? '<span class="ml-2 font-semibold">(Overdue)</span>' : ''}
+              </div>
+            </div>
+            <button onclick="deleteReminder('${reminder.id}')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `;
+        reminderList.appendChild(item);
+      });
+    }
+
+    function deleteReminder(reminderId) {
+      showConfirm(
+        'Delete Reminder', 
+        'Are you sure you want to delete this reminder?',
+        function() {
+          state.reminders = state.reminders.filter(r => r.id !== reminderId);
+          saveData();
+          renderReminders();
+          showToast('Reminder deleted', 'success');
+        }
+      );
+    }
+
+    // Utility functions
+    function formatDate(date) {
+      const d = new Date(date);
+      let month = '' + (d.getMonth() + 1);
+      let day = '' + d.getDate();
+      const year = d.getFullYear();
+
+      if (month.length < 2) month = '0' + month;
+      if (day.length < 2) day = '0' + day;
+
+      return [year, month, day].join('-');
+    }
+
+    function formatDateTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function formatDateTimeLocal(dateString) {
+      const date = new Date(dateString);
+      const pad = num => num.toString().padStart(2, '0');
+      
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${
+        pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+      
+      toast.className = `fixed bottom-4 right-4 hidden p-4 rounded-md shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-yellow-500 text-white'
+      }`;
+      
+      toastIcon.className = type === 'success' ? 'fas fa-check-circle' :
+                          type === 'error' ? 'fas fa-exclamation-circle' :
+                          'fas fa-info-circle';
+      
+      toastMessage.textContent = message;
+      toast.classList.remove('hidden');
+      
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    function showConfirm(title, message, callback) {
+      const dialog = document.getElementById('confirm-dialog');
+      const dialogTitle = document.getElementById('confirm-title');
+      const dialogMessage = document.getElementById('confirm-message');
+      
+      dialogTitle.textContent = title;
+      dialogMessage.textContent = message;
+      dialog.classList.remove('hidden');
+      
+      document.getElementById('confirm-ok').onclick = function() {
+        callback();
+        dialog.classList.add('hidden');
+      };
+    }
+
+    // Expose functions to global scope for HTML onclick handlers
+    window.switchTab = switchTab;
+    window.openTaskModal = openTaskModal;
+    window.closeTaskModal = closeTaskModal;
+    window.editTask = openTaskModal;
+    window.deleteTask = deleteTask;
+    window.setRoutineDate = setRoutineDate;
+    window.toggleRoutineComplete = toggleRoutineComplete;
+    window.editRoutineTask = editRoutineTask;
+    window.deleteRoutineTask = deleteRoutineTask;
+    window.showAddReminderForm = showAddReminderForm;
+    window.hideAddReminderForm = hideAddReminderForm;
+    window.addReminder = addReminder;
+    window.deleteReminder = deleteReminder;
+    window.addTask = addTask;
+
+    window.addEventListener('beforeunload', function () {
+      saveData(); // Save the current state before leaving the page
+    });
+  </script>
+</body>
+</html>
+
+<script>
+const mongoose = require('mongoose');
+
+const RoutineSchema = new mongoose.Schema({
+  date: { type: String, required: true, unique: true },
+  tasks: [
+    {
+      id: String,
+      task: String,
+      time: String,
+      completed: Boolean,
+    },
+  ],
+});
+
+const TaskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: String,
+  deadline: { type: Date, required: true },
+  priority: { type: String, enum: ['Low', 'Medium', 'High'], required: true },
+  category: { type: String, enum: ['daily', 'weekly', 'monthly', 'yearly'], required: true },
+  status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
+  createdAt: { type: Date, default: Date.now },
+});
+
+module.exports = {
+  Routine: mongoose.model('Routine', RoutineSchema),
+  Task: mongoose.model('Task', TaskSchema),
+};
+</script>

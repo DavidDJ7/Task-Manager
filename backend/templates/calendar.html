@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ translation.goal_planner }} - Calendar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    [data-theme="dark"] {
+      --tw-bg-opacity: 1;
+      background-color: rgba(31, 41, 55, var(--tw-bg-opacity));
+      color: rgba(229, 231, 235, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .bg-white {
+      background-color: rgba(55, 65, 81, var(--tw-bg-opacity));
+    }
+
+    [data-theme="dark"] .text-gray-900 {
+      color: rgba(229, 231, 235, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .border-gray-300 {
+      border-color: rgba(75, 85, 99, var(--tw-border-opacity));
+    }
+
+    [data-theme="dark"] .bg-white-90 {
+      background-color: rgba(55, 65, 81, 0.9);
+    }
+
+    [data-theme="dark"] .text-gray-600 {
+      color: rgba(156, 163, 175, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .text-gray-700 {
+      color: rgba(209, 213, 219, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .bg-gray-100 {
+      background-color: rgba(31, 41, 55, var(--tw-bg-opacity));
+    }
+
+    [data-theme="dark"] .bg-gray-200 {
+      background-color: rgba(55, 65, 81, var(--tw-bg-opacity));
+    }
+
+    [data-theme="dark"] .hover\:text-yellow-600:hover {
+      color: rgba(234, 179, 8, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .hover\:bg-yellow-600:hover {
+      background-color: rgba(202, 138, 4, var(--tw-bg-opacity));
+    }
+
+    [data-theme="dark"] .border-t {
+      border-color: rgba(75, 85, 99, var(--tw-border-opacity));
+    }
+
+    [data-theme="dark"] .text-yellow-700 {
+      color: rgba(234, 179, 8, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .bg-white\/80 {
+      background-color: rgba(55, 65, 81, 0.8);
+    }
+
+    /* Custom calendar styles */
+    .fc-event {
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.85em;
+      padding: 2px 4px;
+      margin-bottom: 2px;
+    }
+
+    .fc-daygrid-event-dot {
+      display: none;
+    }
+
+    .fc-toolbar-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .fc-button {
+      background-color: #ffffff;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      transition: background-color 0.2s;
+    }
+    
+    .fc-button:hover {
+      background-color: #f3f4f6;
+    }
+
+    .fc-button-primary {
+      background-color: #eab308;
+      border-color: #eab308;
+      color: #ffffff;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+    
+    .fc-button-primary:hover {
+      background-color: #ca8a04;
+      border-color: #ca8a04;
+    }
+
+    
+    .fc-button-active {
+      background-color: #ca8a04;
+      border-color: #ca8a04;
+    }
+
+    /* Custom modal styles */
+    .modal {
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-content {
+      transform: translateY(0);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-hidden .modal-content {
+      transform: translateY(-20px);
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .fc-toolbar {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .fc-toolbar-title {
+        font-size: 1rem;
+        margin: 5px 0;
+      }
+      
+      .fc-button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* Event priority indicators */
+    .priority-high {
+      border-left: 4px solid #ef4444;
+    }
+    
+    .priority-medium {
+      border-left: 4px solid #f59e0b;
+    }
+    
+    .priority-low {
+      border-left: 4px solid #10b981;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-200 to-gray-100 min-h-screen text-gray-900 flex flex-col" data-theme="{{ settings.theme }}">
+
+  <!-- Navbar -->
+  {% include 'partials/navbar.html' %}
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <h1 class="text-3xl font-bold text-yellow-700 mb-4 md:mb-0">
+        <i class="far fa-calendar-alt mr-2"></i>
+        {{ translation.goal_planner }}
+      </h1>
+      <div class="flex space-x-3">
+        <button id="createEventBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center">
+          <i class="fas fa-plus mr-2"></i> {{ translation.new_event }}
+        </button>
+        <button id="viewTasksBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+          <i class="fas fa-tasks mr-2"></i> {{ translation.view_tasks }}
+        </button>
+        <button id="toggleViewBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center">
+          <i class="fas fa-exchange-alt mr-2"></i> {{ translation.toggle_view }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Calendar and Sidebar -->
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Main Calendar -->
+      <div class="flex-grow">
+        <div id="calendar" class="bg-white border border-gray-300 rounded-lg shadow-md p-4"></div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="lg:w-80 flex-shrink-0 space-y-6">
+        <!-- Upcoming Events Section -->
+        <div class="bg-white border border-gray-300 rounded-lg shadow-md p-4">
+          <h3 class="text-lg font-semibold text-yellow-700 mb-3 flex items-center">
+            <i class="fas fa-clock mr-2"></i>
+            {{ translation.upcoming_events }}
+          </h3>
+          <div id="upcomingEvents" class="space-y-3">
+            <div class="text-center text-gray-500 py-4">
+              <i class="fas fa-spinner spinner mr-2"></i>
+              <p>{{ translation.loading_events }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Add Event Section -->
+        <div class="bg-white border border-gray-300 rounded-lg shadow-md p-4">
+          <h3 class="text-lg font-semibold text-yellow-700 mb-3 flex items-center">
+            <i class="fas fa-plus-circle mr-2"></i>
+            {{ translation.quick_add }}
+          </h3>
+          <form id="quickEventForm" class="space-y-4">
+            <div>
+              <label for="quickEventTitle" class="block text-sm font-medium text-gray-700 mb-1">
+                {{ translation.event_title }}
+              </label>
+              <input type="text" id="quickEventTitle" placeholder="{{ translation.event_title }}" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" id="quickAddToday" 
+                class="w-full bg-green-100 text-green-800 text-sm px-2 py-1 rounded hover:bg-green-200">
+                {{ translation.today }}
+              </button>
+              <button type="button" id="quickAddTomorrow" 
+                class="w-full bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-200">
+                {{ translation.tomorrow }}
+              </button>
+            </div>
+            <button type="submit" 
+              class="w-full bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center">
+              <i class="fas fa-plus mr-2"></i> {{ translation.add_event }}
+            </button>
+          </form>
+        </div>
+
+        <!-- Navigation Section -->
+        <div class="bg-white border border-gray-300 rounded-lg shadow-md p-4">
+          <h3 class="text-lg font-semibold text-yellow-700 mb-3 flex items-center">
+            <i class="fas fa-calendar-alt mr-2"></i>
+            {{ translation.navigation }}
+          </h3>
+          <div class="flex justify-between">
+            <button id="prevMonthBtn" class="text-gray-600 hover:text-yellow-600">
+              <i class="fas fa-chevron-left"></i> {{ translation.previous }}
+            </button>
+            <button id="todayBtn" 
+              class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded">
+              {{ translation.today }}
+            </button>
+            <button id="nextMonthBtn" class="text-gray-600 hover:text-yellow-600">
+              {{ translation.next }} <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Create Event Modal -->
+  <div id="eventModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-hidden">
+    <div class="modal-content bg-white rounded-xl shadow-xl w-full max-w-md">
+      <div class="flex justify-between items-center border-b border-gray-200 p-4">
+        <h3 class="text-xl font-bold text-yellow-700" id="modalTitle">{{ translation.new_event }}</h3>
+        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="eventForm" class="p-4 space-y-4">
+        <input type="hidden" id="eventId">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ translation.event_title }} *</label>
+          <input type="text" id="eventTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ translation.start_date }} *</label>
+            <input type="text" id="eventStart" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 flatpickr">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ translation.end_date }} *</label>
+            <input type="text" id="eventEnd" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 flatpickr">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ translation.description }}</label>
+          <textarea id="eventDescription" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ translation.event_color }}</label>
+          <div class="flex space-x-2">
+            <div class="color-option bg-yellow-500 w-6 h-6 rounded-full cursor-pointer border-2 border-transparent hover:border-gray-300" data-color="yellow"></div>
+            <div class="color-option bg-blue-500 w-6 h-6 rounded-full cursor-pointer border-2 border-transparent hover:border-gray-300" data-color="blue"></div>
+            <div class="color-option bg-green-500 w-6 h-6 rounded-full cursor-pointer border-2 border-transparent hover:border-gray-300" data-color="green"></div>
+            <div class="color-option bg-red-500 w-6 h-6 rounded-full cursor-pointer border-2 border-transparent hover:border-gray-300" data-color="red"></div>
+            <div class="color-option bg-purple-500 w-6 h-6 rounded-full cursor-pointer border-2 border-transparent hover:border-gray-300" data-color="purple"></div>
+          </div>
+          <input type="hidden" id="eventColor" value="yellow">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ translation.priority }}</label>
+          <select id="eventPriority" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+            <option value="low">{{ translation.low }}</option>
+            <option value="medium" selected>{{ translation.medium }}</option>
+            <option value="high">{{ translation.high }}</option>
+          </select>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="eventAllDay" class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
+          <label for="eventAllDay" class="ml-2 block text-sm text-gray-700">{{ translation.all_day_event }}</label>
+        </div>
+        <div class="flex justify-end space-x-3 pt-2">
+          <button type="button" id="cancelEventBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+            {{ translation.cancel }}
+          </button>
+          <button type="submit" id="saveEventBtn" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg flex items-center">
+            <span id="saveBtnText">{{ translation.save_event }}</span>
+            <span id="saveBtnSpinner" class="hidden ml-2 spinner"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Event Details Modal -->
+  <div id="eventDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-hidden">
+    <div class="modal-content bg-white rounded-xl shadow-xl w-full max-w-md">
+      <div class="flex justify-between items-center border-b border-gray-200 p-4">
+        <h3 class="text-xl font-bold text-yellow-700" id="eventDetailsTitle">{{ translation.event_details }}</h3>
+        <button id="closeDetailsModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-4">
+        <div>
+          <p class="text-sm text-gray-600">{{ translation.when }}</p>
+          <p id="eventDetailsTime" class="font-medium"></p>
+          <p id="eventDetailsAllDay" class="text-sm text-gray-500"></p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600">{{ translation.description }}</p>
+          <p id="eventDetailsDescription" class="font-medium"></p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600">{{ translation.priority }}</p>
+          <p id="eventDetailsPriority" class="font-medium"></p>
+        </div>
+        <div class="flex justify-between pt-4">
+          <button id="editEventBtn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg">
+            <i class="fas fa-edit mr-1"></i> {{ translation.edit }}
+          </button>
+          <button id="deleteEventBtn" class="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+            <i class="fas fa-trash-alt mr-1"></i> {{ translation.delete }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-hidden">
+    <div class="modal-content bg-white rounded-xl shadow-xl w-full max-w-md">
+      <div class="flex justify-between items-center border-b border-gray-200 p-4">
+        <h3 class="text-xl font-bold text-yellow-700" id="confirmModalTitle">{{ translation.confirmation }}</h3>
+        <button id="closeConfirmModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-4">
+        <p id="confirmModalMessage" class="text-gray-700"></p>
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="cancelConfirmBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+            {{ translation.cancel }}
+          </button>
+          <button id="confirmActionBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+            {{ translation.confirm }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full text-center py-4 bg-white/80 border-t border-gray-300">
+    <p class="text-sm text-gray-700">&copy; 2025 <span class="font-semibold text-yellow-700">Stone Industries</span>. All rights reserved.</p>
+  </footer>
+
+  <!-- JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize main calendar
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: localStorage.getItem('calendarView') || 'dayGridMonth',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        events: '/calendar/events',
+        editable: true,
+        selectable: true,
+        selectMirror: true,
+        dayMaxEvents: true,
+        nowIndicator: true,
+        eventTimeFormat: {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        },
+        datesSet: function(info) {
+          updateUpcomingEvents();
+        }
+      });
+      calendar.render();
+
+      // Initialize date pickers
+      const startPicker = flatpickr("#eventStart", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        defaultDate: new Date(),
+        minuteIncrement: 15,
+        onChange: function(selectedDates, dateStr) {
+          // Auto-set end date to 1 hour after start if not set
+          if (selectedDates.length && !endPicker.selectedDates.length) {
+            const endDate = new Date(selectedDates[0].getTime() + 60 * 60 * 1000);
+            endPicker.setDate(endDate);
+          }
+        }
+      });
+
+      const endPicker = flatpickr("#eventEnd", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        minuteIncrement: 15
+      });
+
+      // Modal functionality
+      const eventModal = document.getElementById('eventModal');
+      const eventDetailsModal = document.getElementById('eventDetailsModal');
+      const confirmModal = document.getElementById('confirmModal');
+
+      function toggleModal(modal, show) {
+        if (show) {
+          modal.classList.remove('modal-hidden');
+          document.body.style.overflow = 'hidden';
+        } else {
+          modal.classList.add('modal-hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      // Event creation
+      document.getElementById('createEventBtn').addEventListener('click', function() {
+        document.getElementById('modalTitle').textContent = '{{ translation.new_event }}';
+        document.getElementById('eventForm').reset();
+        document.getElementById('eventId').value = '';
+        document.getElementById('eventColor').value = 'yellow';
+        document.querySelector('.color-option[data-color="yellow"]').classList.add('border-gray-800');
+        document.getElementById('eventPriority').value = 'medium';
+        document.getElementById('eventAllDay').checked = false;
+        
+        // Set default times
+        const now = new Date();
+        const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+        startPicker.setDate(now);
+        endPicker.setDate(oneHourLater);
+        
+        toggleModal(eventModal, true);
+      });
+
+      function openEventModal(start, end) {
+        document.getElementById('modalTitle').textContent = '{{ translation.new_event }}';
+        document.getElementById('eventForm').reset();
+        document.getElementById('eventId').value = '';
+        document.getElementById('eventColor').value = 'yellow';
+        document.querySelector('.color-option[data-color="yellow"]').classList.add('border-gray-800');
+        document.getElementById('eventPriority').value = 'medium';
+        document.getElementById('eventAllDay').checked = false;
+        
+        startPicker.setDate(start);
+        endPicker.setDate(end);
+        
+        toggleModal(eventModal, true);
+      }
+
+      // Color selection
+      document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function() {
+          document.querySelectorAll('.color-option').forEach(opt => {
+            opt.classList.remove('border-gray-800');
+          });
+          this.classList.add('border-gray-800');
+          document.getElementById('eventColor').value = this.getAttribute('data-color');
+        });
+      });
+
+      // All-day event toggle
+      document.getElementById('eventAllDay').addEventListener('change', function() {
+        if (this.checked) {
+          startPicker.set('enableTime', false);
+          endPicker.set('enableTime', false);
+          startPicker.set('dateFormat', 'Y-m-d');
+          endPicker.set('dateFormat', 'Y-m-d');
+        } else {
+          startPicker.set('enableTime', true);
+          endPicker.set('enableTime', true);
+          startPicker.set('dateFormat', 'Y-m-d H:i');
+          endPicker.set('dateFormat', 'Y-m-d H:i');
+        }
+      });
+
+      // Form submission
+      document.getElementById('eventForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const saveBtn = document.getElementById('saveEventBtn');
+        const saveBtnText = document.getElementById('saveBtnText');
+        const saveBtnSpinner = document.getElementById('saveBtnSpinner');
+        
+        // Show loading state
+        saveBtn.disabled = true;
+        saveBtnText.textContent = '{{ translation.saving }}...';
+        saveBtnSpinner.classList.remove('hidden');
+        
+        const eventData = {
+          id: document.getElementById('eventId').value,
+          title: document.getElementById('eventTitle').value.trim(),
+          start: document.getElementById('eventStart').value,
+          end: document.getElementById('eventEnd').value,
+          description: document.getElementById('eventDescription').value.trim(),
+          color: document.getElementById('eventColor').value,
+          priority: document.getElementById('eventPriority').value,
+          allDay: document.getElementById('eventAllDay').checked
+        };
+
+        // Validate dates
+        if (new Date(eventData.start) >= new Date(eventData.end)) {
+          showAlert('{{ translation.end_date_error }}', 'error');
+          saveBtn.disabled = false;
+          saveBtnText.textContent = '{{ translation.save_event }}';
+          saveBtnSpinner.classList.add('hidden');
+          return;
+        }
+
+        try {
+          // Simulate API call delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (eventData.id) {
+            // Update existing event
+            const event = calendar.getEventById(eventData.id);
+            event.setProp('title', eventData.title);
+            event.setStart(eventData.start);
+            event.setEnd(eventData.end);
+            event.setExtendedProp('description', eventData.description);
+            event.setExtendedProp('color', eventData.color);
+            event.setExtendedProp('priority', eventData.priority);
+            event.setProp('allDay', eventData.allDay);
+            
+            showAlert('{{ translation.event_updated }}', 'success');
+          } else {
+            // Add new event
+            calendar.addEvent({
+              title: eventData.title,
+              start: eventData.start,
+              end: eventData.end,
+              description: eventData.description,
+              color: eventData.color,
+              priority: eventData.priority,
+              allDay: eventData.allDay
+            });
+            
+            showAlert('{{ translation.event_created }}', 'success');
+          }
+          
+          toggleModal(eventModal, false);
+          updateUpcomingEvents();
+        } catch (error) {
+          console.error('Error saving event:', error);
+          showAlert('{{ translation.save_error }}', 'error');
+        } finally {
+          // Reset button state
+          saveBtn.disabled = false;
+          saveBtnText.textContent = '{{ translation.save_event }}';
+          saveBtnSpinner.classList.add('hidden');
+        }
+      });
+
+      // Event details
+      function showEventDetails(event) {
+        document.getElementById('eventDetailsTitle').textContent = event.title;
+        
+        const start = event.start ? event.start.toLocaleString() : 'N/A';
+        const end = event.end ? event.end.toLocaleString() : 'N/A';
+        document.getElementById('eventDetailsTime').textContent = `${start} - ${end}`;
+        
+        document.getElementById('eventDetailsAllDay').textContent = event.allDay ? 
+          '({{ translation.all_day_event }})' : '';
+        
+        document.getElementById('eventDetailsDescription').textContent = 
+          event.extendedProps.description || '{{ translation.no_description }}';
+        
+        // Display priority with appropriate styling
+        const priority = event.extendedProps.priority || 'medium';
+        const priorityElement = document.getElementById('eventDetailsPriority');
+        priorityElement.textContent = priority.charAt(0).toUpperCase() + priority.slice(1);
+        priorityElement.className = 'font-medium';
+        
+        switch(priority) {
+          case 'high':
+            priorityElement.classList.add('text-red-600');
+            break;
+          case 'medium':
+            priorityElement.classList.add('text-yellow-600');
+            break;
+          case 'low':
+            priorityElement.classList.add('text-green-600');
+            break;
+        }
+        
+        // Store event ID for editing/deleting
+        document.getElementById('editEventBtn').dataset.eventId = event.id;
+        document.getElementById('deleteEventBtn').dataset.eventId = event.id;
+        
+        toggleModal(eventDetailsModal, true);
+      }
+
+      // Edit event
+      document.getElementById('editEventBtn').addEventListener('click', function() {
+        const eventId = this.dataset.eventId;
+        const event = calendar.getEventById(eventId);
+        
+        document.getElementById('modalTitle').textContent = '{{ translation.edit_event }}';
+        document.getElementById('eventId').value = event.id;
+        document.getElementById('eventTitle').value = event.title;
+        document.getElementById('eventStart').value = event.start ? event.start.toISOString() : '';
+        document.getElementById('eventEnd').value = event.end ? event.end.toISOString() : '';
+        document.getElementById('eventDescription').value = event.extendedProps.description || '';
+        document.getElementById('eventColor').value = event.extendedProps.color || 'yellow';
+        document.getElementById('eventPriority').value = event.extendedProps.priority || 'medium';
+        document.getElementById('eventAllDay').checked = event.allDay || false;
+        
+        // Update date pickers based on all-day status
+        if (event.allDay) {
+          startPicker.set('enableTime', false);
+          endPicker.set('enableTime', false);
+          startPicker.set('dateFormat', 'Y-m-d');
+          endPicker.set('dateFormat', 'Y-m-d');
+        } else {
+          startPicker.set('enableTime', true);
+          endPicker.set('enableTime', true);
+          startPicker.set('dateFormat', 'Y-m-d H:i');
+          endPicker.set('dateFormat', 'Y-m-d H:i');
+        }
+        
+        // Highlight selected color
+        document.querySelectorAll('.color-option').forEach(opt => {
+          opt.classList.remove('border-gray-800');
+          if (opt.getAttribute('data-color') === (event.extendedProps.color || 'yellow')) {
+            opt.classList.add('border-gray-800');
+          }
+        });
+        
+        toggleModal(eventDetailsModal, false);
+        toggleModal(eventModal, true);
+      });
+
+      // Delete event
+      document.getElementById('deleteEventBtn').addEventListener('click', function() {
+        const eventId = this.dataset.eventId;
+        showConfirm(
+          '{{ translation.confirm_delete }}', 
+          '{{ translation.confirm_delete_event }}',
+          function() {
+            const event = calendar.getEventById(eventId);
+            event.remove();
+            toggleModal(eventDetailsModal, false);
+            updateUpcomingEvents();
+            showAlert('{{ translation.event_deleted }}', 'success');
+          }
+        );
+      });
+
+      // Quick add event form
+      document.getElementById('quickEventForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('quickEventTitle').value.trim();
+        if (!title) {
+          showAlert('{{ translation.event_title_required }}', 'error');
+          return;
+        }
+        
+        const now = new Date();
+        const end = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
+        
+        calendar.addEvent({
+          title: title,
+          start: now,
+          end: end,
+          color: 'yellow',
+          priority: 'medium'
+        });
+        
+        document.getElementById('quickEventTitle').value = '';
+        updateUpcomingEvents();
+        showAlert('{{ translation.event_added }}', 'success');
+      });
+
+      // Quick add buttons
+      document.getElementById('quickAddToday').addEventListener('click', function() {
+        const now = new Date();
+        openEventModal(now, new Date(now.getTime() + 60 * 60 * 1000));
+      });
+
+      document.getElementById('quickAddTomorrow').addEventListener('click', function() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+        
+        const end = new Date(tomorrow.getTime() + 60 * 60 * 1000); // 1 hour later
+        openEventModal(tomorrow, end);
+      });
+
+      // Close modals
+      document.getElementById('closeModal').addEventListener('click', () => toggleModal(eventModal, false));
+      document.getElementById('cancelEventBtn').addEventListener('click', () => toggleModal(eventModal, false));
+      document.getElementById('closeDetailsModal').addEventListener('click', () => toggleModal(eventDetailsModal, false));
+      document.getElementById('closeConfirmModal').addEventListener('click', () => toggleModal(confirmModal, false));
+      document.getElementById('cancelConfirmBtn').addEventListener('click', () => toggleModal(confirmModal, false));
+
+      // Navigation buttons
+      document.getElementById('prevMonthBtn').addEventListener('click', () => {
+        calendar.prev();
+      });
+
+      document.getElementById('nextMonthBtn').addEventListener('click', () => {
+        calendar.next();
+      });
+
+      document.getElementById('todayBtn').addEventListener('click', () => {
+        calendar.today();
+      });
+
+      // Toggle view button
+      document.getElementById('toggleViewBtn').addEventListener('click', function() {
+        const currentView = calendar.view.type;
+        let newView;
+        
+        switch(currentView) {
+          case 'dayGridMonth':
+            newView = 'timeGridWeek';
+            break;
+          case 'timeGridWeek':
+            newView = 'timeGridDay';
+            break;
+          case 'timeGridDay':
+            newView = 'listWeek';
+            break;
+          default:
+            newView = 'dayGridMonth';
+        }
+        
+        calendar.changeView(newView);
+        localStorage.setItem('calendarView', newView);
+      });
+
+      // View tasks button
+      document.getElementById('viewTasksBtn').addEventListener('click', () => {
+        window.location.href = '/tasks';
+      });
+
+      // Update upcoming events list
+      function updateUpcomingEvents() {
+        const upcomingEventsContainer = document.getElementById('upcomingEvents');
+        const events = calendar.getEvents();
+        const now = new Date();
+        
+        // Filter upcoming events (next 7 days) and sort by date
+        const upcoming = events
+          .filter(event => event.start && event.start > now && event.start < new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
+          .sort((a, b) => a.start - b.start)
+          .slice(0, 5); // Limit to 5 events
+        
+        if (upcoming.length > 0) {
+          let html = '';
+          upcoming.forEach(event => {
+            const date = event.start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            const time = event.allDay ? '{{ translation.all_day }}' : event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const priority = event.extendedProps.priority || 'medium';
+            
+            html += `
+              <div class="border-l-4 pl-3 py-2 cursor-pointer hover:bg-gray-50 priority-${priority}" 
+                   onclick="showEventDetails('${event.id}')">
+                <p class="font-medium truncate">${event.title}</p>
+                <div class="flex justify-between items-center">
+                  <p class="text-sm text-gray-600">${date} ${!event.allDay ? 'at ' + time : ''}</p>
+                  <span class="text-xs px-2 py-1 rounded-full ${getPriorityBadgeClass(priority)}">
+                    ${priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  </span>
+                </div>
+              </div>
+            `;
+          });
+          upcomingEventsContainer.innerHTML = html;
+        } else {
+          upcomingEventsContainer.innerHTML = `
+            <div class="text-center text-gray-500 py-4">
+              <i class="fas fa-calendar-check text-2xl mb-2"></i>
+              <p>{{ translation.no_upcoming_events }}</p>
+            </div>
+          `;
+        }
+      }
+
+      // Helper function to get priority badge class
+      function getPriorityBadgeClass(priority) {
+        switch(priority) {
+          case 'high': return 'bg-red-100 text-red-800';
+          case 'medium': return 'bg-yellow-100 text-yellow-800';
+          case 'low': return 'bg-green-100 text-green-800';
+          default: return 'bg-gray-100 text-gray-800';
+        }
+      }
+
+      // Helper function to get contrast color for text
+      function getContrastColor(hexColor) {
+        // Convert hex to RGB
+        const r = parseInt(hexColor.substr(1, 2), 16);
+        const g = parseInt(hexColor.substr(3, 2), 16);
+        const b = parseInt(hexColor.substr(5, 2), 16);
+        
+        // Calculate luminance
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        
+        // Return black for light colors, white for dark colors
+        return luminance > 0.5 ? '#000000' : '#ffffff';
+      }
+
+      // Show confirmation dialog
+      function showConfirm(title, message, callback) {
+        document.getElementById('confirmModalTitle').textContent = title;
+        document.getElementById('confirmModalMessage').textContent = message;
+        
+        const confirmBtn = document.getElementById('confirmActionBtn');
+        const oldHandler = confirmBtn.onclick;
+        
+        confirmBtn.onclick = function() {
+          toggleModal(confirmModal, false);
+          callback();
+        };
+        
+        toggleModal(confirmModal, true);
+        
+        // Clean up handler when modal is closed
+        document.getElementById('closeConfirmModal').addEventListener('click', function() {
+          confirmBtn.onclick = oldHandler;
+        }, { once: true });
+        
+        document.getElementById('cancelConfirmBtn').addEventListener('click', function() {
+          confirmBtn.onclick = oldHandler;
+        }, { once: true });
+      }
+
+      // Show alert message
+      function showAlert(message, type = 'success') {
+        const alert = document.createElement('div');
+        alert.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`;
+        alert.innerHTML = `
+          <div class="flex items-center">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+            <span>${message}</span>
+          </div>
+        `;
+        
+        document.body.appendChild(alert);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+          alert.style.opacity = '0';
+          alert.style.transition = 'opacity 0.5s';
+          setTimeout(() => alert.remove(), 500);
+        }, 3000);
+      }
+
+      // Update event on server
+      async function updateEvent(event) {
+        try {
+          const eventData = {
+            id: event.id,
+            title: event.title,
+            start: event.start.toISOString(),
+            end: event.end ? event.end.toISOString() : null,
+            description: event.extendedProps.description,
+            color: event.extendedProps.color,
+            priority: event.extendedProps.priority,
+            allDay: event.allDay
+          };
+          
+          // In a real app, you would send this to your backend
+          console.log('Updating event:', eventData);
+          
+          updateUpcomingEvents();
+        } catch (error) {
+          console.error('Error updating event:', error);
+          showAlert('{{ translation.update_error }}', 'error');
+          // Revert the event change
+          event.revert();
+        }
+      }
+
+      // Initial load
+      updateUpcomingEvents();
+
+      // Expose function to global scope for inline event handlers
+      window.showEventDetails = function(eventId) {
+        const event = calendar.getEventById(eventId);
+        showEventDetails(event);
+      };
+    });
+  </script>
+</body>
+</html>

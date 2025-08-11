@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - Task Manager AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    [data-theme="dark"] {
+      --tw-bg-opacity: 1;
+      background-color: rgba(31, 41, 55, var(--tw-bg-opacity));
+      color: rgba(229, 231, 235, var(--tw-text-opacity));
+    }
+    /* Additional dark mode styles */
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-200 to-gray-100 min-h-screen text-gray-900 flex flex-col" data-theme="{{ settings.theme }}">
+
+  <!-- Navbar -->
+  {% include 'partials/navbar.html' %}
+  <a href="/dashboard" class="block py-2 px-4 hover:bg-yellow-50 rounded {{ 'text-yellow-700 bg-yellow-50' if request.path == '/dashboard' else '' }}">
+    <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+  </a>
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- Welcome Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+      <div>
+
+        <!-- Welcome Message -->
+        <h1 class="text-3xl font-bold text-yellow-700">
+          {{ translation['dashboard']['welcome'] }}, {{ name }}!
+        </h1>
+        <div class="mt-2 flex items-center space-x-4">
+          <p class="text-gray-600" id="current-time">
+            <i class="far fa-clock mr-1"></i>
+            <span>{{ translation['dashboard']['current_time'] }}</span>
+          </p>
+          <p class="text-gray-600">
+            <i class="far fa-calendar mr-1"></i>
+            <span id="current-date">{{ current_date }}</span>
+          </p>
+        </div>
+      </div>
+      <div class="mt-4 md:mt-0">
+        <!-- Add Task Button -->
+        <a href="/tasks" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+          <i class="fas fa-plus mr-2"></i> {{ translation['dashboard']['new_task'] }}
+        </a>
+      </div>
+    </div>
+
+    <!-- Productivity Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-xl p-4 flex items-center">
+        <div class="bg-yellow-100 text-yellow-700 p-3 rounded-full mr-4">
+          <i class="fas fa-tasks text-xl"></i>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600">Total Tasks</p>
+          <p class="text-2xl font-bold">{{ stats.total_tasks }}</p>
+        </div>
+      </div>
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-xl p-4 flex items-center">
+        <div class="bg-green-100 text-green-700 p-3 rounded-full mr-4">
+          <i class="fas fa-check-circle text-xl"></i>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600">Completed</p>
+          <p class="text-2xl font-bold">{{ stats.completed_tasks }}</p>
+        </div>
+      </div>
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-xl p-4 flex items-center">
+        <div class="bg-blue-100 text-blue-700 p-3 rounded-full mr-4">
+          <i class="fas fa-clock text-xl"></i>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600">In Progress</p>
+          <p class="text-2xl font-bold">{{ stats.in_progress }}</p>
+        </div>
+      </div>
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-xl p-4 flex items-center">
+        <div class="bg-purple-100 text-purple-700 p-3 rounded-full mr-4">
+          <i class="fas fa-star text-xl"></i>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600">Productivity</p>
+          <p class="text-2xl font-bold">{{ stats.productivity }}%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Today's Tasks -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-300 dark:border-gray-700 p-6">
+        <h2 class="text-xl font-bold text-yellow-700 dark:text-yellow-400 mb-4">Today's Tasks</h2>
+        <ul>
+          {% for task in today_tasks %}
+            <li class="p-4 border-l-4 border-yellow-500 dark:border-yellow-400 bg-gray-50 dark:bg-gray-700 rounded-md shadow-sm">
+              <p class="font-medium text-gray-800 dark:text-gray-200">{{ task.title }}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ task.description }}</p>
+            </li>
+          {% else %}
+            <li class="text-gray-500 dark:text-gray-400 italic">No tasks for today</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Upcoming Tasks -->
+      <div class="bg-white rounded-lg shadow-md border border-gray-300 p-6">
+        <h2 class="text-xl font-bold text-yellow-700 mb-4">Upcoming Tasks</h2>
+        <ul>
+          {% for task in upcoming_tasks %}
+            <li class="p-4 border-l-4 border-blue-500 bg-gray-50 rounded-md shadow-sm">
+              <p class="font-medium">{{ task.title }}</p>
+              <p class="text-sm text-gray-600">{{ task.description }}</p>
+            </li>
+          {% else %}
+            <li class="text-gray-500 italic">No upcoming tasks</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Chatbot Section -->
+    <div class="fixed bottom-6 right-6 z-50">
+      <div id="chatbot-container" class="w-80 max-w-full bg-white border border-gray-300 rounded-xl shadow-2xl hidden flex-col">
+        <div class="flex items-center justify-between px-4 py-2 bg-yellow-600 rounded-t-xl">
+          <span class="text-white font-bold">AI Chatbot</span>
+          <button id="close-chatbot" class="text-white text-xl">&times;</button>
+        </div>
+        <div id="chatbot-messages" class="p-4 h-64 overflow-y-auto text-sm space-y-2"></div>
+        <form id="chatbot-form" class="flex border-t border-gray-200">
+          <input
+            type="text"
+            id="chatbot-input"
+            class="flex-grow px-3 py-2 rounded-bl-xl focus:outline-none"
+            placeholder="Ask me anything..."
+            autocomplete="off"
+            required
+          />
+          <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-br-xl transition">Send</button>
+        </form>
+      </div>
+      <button id="open-chatbot" class="bg-yellow-600 hover:bg-yellow-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center">
+        <i class="fas fa-robot text-2xl"></i>
+      </button>
+    </div>
+    <!-- End Chatbot Section -->
+
+    <!-- ChatGPT-like AI Chat Section -->
+    <div class="mt-12 mb-8">
+      <div class="bg-white rounded-xl shadow-lg border border-gray-300 max-w-3xl mx-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center">
+          <i class="fas fa-robot text-yellow-600 text-2xl mr-3"></i>
+          <h2 class="text-xl font-bold text-yellow-700">AI Task Assistant</h2>
+        </div>
+        <div id="ai-chat-messages" class="px-6 py-4 h-96 overflow-y-auto space-y-4 bg-gray-50">
+          <!-- Messages will appear here -->
+        </div>
+        <form id="ai-chat-form" class="flex border-t border-gray-200">
+          <input
+            type="text"
+            id="ai-chat-input"
+            class="flex-grow px-4 py-3 rounded-bl-xl focus:outline-none"
+            placeholder="Type your message about today's tasks..."
+            autocomplete="off"
+            required
+          />
+          <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-br-xl transition">Send</button>
+        </form>
+      </div>
+    </div>
+    <!-- End AI Chat Section -->
+  </main>
+
+  <!-- Footer -->
+  <footer class="w-full text-center py-4 bg-white/80 border-t border-gray-300">
+    <p class="text-sm text-gray-700">&copy; 2025 <span class="font-semibold text-yellow-700">Task Manager AI</span>. All rights reserved.</p>
+  </footer>
+
+  <!-- JavaScript -->
+  <script>
+    // Update time and date
+    function updateDateTime() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.querySelector('#current-time span').textContent = timeStr;
+      document.getElementById('current-date').textContent = dateStr;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    // Chatbot UI logic
+    const chatbotContainer = document.getElementById('chatbot-container');
+    const openChatbotBtn = document.getElementById('open-chatbot');
+    const closeChatbotBtn = document.getElementById('close-chatbot');
+    const chatbotForm = document.getElementById('chatbot-form');
+    const chatbotInput = document.getElementById('chatbot-input');
+    const chatbotMessages = document.getElementById('chatbot-messages');
+
+    openChatbotBtn.onclick = () => {
+      chatbotContainer.classList.remove('hidden');
+      openChatbotBtn.classList.add('hidden');
+      chatbotInput.focus();
+    };
+    closeChatbotBtn.onclick = () => {
+      chatbotContainer.classList.add('hidden');
+      openChatbotBtn.classList.remove('hidden');
+    };
+
+    chatbotForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const userMsg = chatbotInput.value.trim();
+      if (!userMsg) return;
+      appendMessage('You', userMsg, 'right');
+      chatbotInput.value = '';
+      chatbotInput.disabled = true;
+
+      // Send message to backend
+      try {
+        const res = await fetch('/chatbot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMsg })
+        });
+        const data = await res.json();
+        appendMessage('AI', data.reply, 'left');
+      } catch {
+        appendMessage('AI', "Sorry, I couldn't process your request.", 'left');
+      }
+      chatbotInput.disabled = false;
+      chatbotInput.focus();
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    };
+
+    function appendMessage(sender, text, align) {
+      const msg = document.createElement('div');
+      msg.className = `flex ${align === 'right' ? 'justify-end' : 'justify-start'}`;
+      msg.innerHTML = `<div class="max-w-xs px-3 py-2 rounded-lg ${align === 'right' ? 'bg-yellow-100 text-right' : 'bg-gray-100'} shadow">${sender !== 'You' ? `<b>${sender}:</b> ` : ''}${text}</div>`;
+      chatbotMessages.appendChild(msg);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    }
+
+    // AI Chat logic
+    const aiChatForm = document.getElementById('ai-chat-form');
+    const aiChatInput = document.getElementById('ai-chat-input');
+    const aiChatMessages = document.getElementById('ai-chat-messages');
+
+    aiChatForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const userMsg = aiChatInput.value.trim();
+      if (!userMsg) return;
+      appendAIChatMessage('You', userMsg, 'right');
+      aiChatInput.value = '';
+      aiChatInput.disabled = true;
+
+      try {
+        const res = await fetch('/chatbot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMsg })
+        });
+        const data = await res.json();
+        appendAIChatMessage('AI', data.reply, 'left');
+      } catch {
+        appendAIChatMessage('AI', "Sorry, I couldn't process your request.", 'left');
+      }
+      aiChatInput.disabled = false;
+      aiChatInput.focus();
+      aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+    };
+
+    function appendAIChatMessage(sender, text, align) {
+      const msg = document.createElement('div');
+      msg.className = `flex ${align === 'right' ? 'justify-end' : 'justify-start'}`;
+      msg.innerHTML = `<div class="max-w-xl px-4 py-3 rounded-lg ${align === 'right' ? 'bg-yellow-100 text-right' : 'bg-gray-200'} shadow">${sender !== 'You' ? `<b>${sender}:</b> ` : ''}${text}</div>`;
+      aiChatMessages.appendChild(msg);
+      aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+    }
+  </script>
+</body>
+</html>

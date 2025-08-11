@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Productivity Analytics - Task Manager AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    [data-theme="dark"] {
+      --tw-bg-opacity: 1;
+      background-color: rgba(31, 41, 55, var(--tw-bg-opacity));
+      color: rgba(229, 231, 235, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .bg-white {
+      background-color: rgba(55, 65, 81, var(--tw-bg-opacity));
+    }
+
+    [data-theme="dark"] .text-gray-900 {
+      color: rgba(229, 231, 235, var(--tw-text-opacity));
+    }
+
+    [data-theme="dark"] .border-gray-300 {
+      border-color: rgba(75, 85, 99, var(--tw-border-opacity));
+    }
+
+    [data-theme="dark"] .bg-white\/90 {
+      background-color: rgba(55, 65, 81, 0.9);
+    }
+
+    [data-theme="dark"] .bg-gradient-to-br {
+      background: linear-gradient(to bottom right, rgba(31, 41, 55, 1), rgba(17, 24, 39, 1));
+    }
+
+    .heatmap-cell {
+      width: 100%;
+      height: 0;
+      padding-bottom: 100%;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.05);
+    }
+
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-50 min-h-screen text-gray-900 flex flex-col" data-theme="{{ settings.theme }}">
+
+  <!-- Navbar -->
+  {% include 'partials/navbar.html' %}
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-yellow-700">Productivity Analytics</h1>
+      <div class="flex items-center space-x-2">
+        <select id="timeRange" class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white/80">
+          <option value="week">Last 7 Days</option>
+          <option value="month" selected>Last 30 Days</option>
+          <option value="quarter">Last 90 Days</option>
+          <option value="year">Last 12 Months</option>
+        </select>
+        <button id="export-btn" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md text-sm flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+      <!-- Total Tasks -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6 flex items-center">
+        <div class="mr-4">
+          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 0 002-2M9 5a2 2 0 012-2h2a2 0 012 2" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-sm font-medium text-gray-500">Total Tasks</h2>
+          <p class="text-2xl font-bold" id="total-tasks">0</p>
+        </div>
+      </div>
+
+      <!-- Completed Tasks -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6 flex items-center">
+        <div class="mr-4">
+          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-sm font-medium text-gray-500">Completed</h2>
+          <p class="text-2xl font-bold text-green-600" id="completed-tasks">0</p>
+        </div>
+      </div>
+
+      <!-- Completion Rate -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6 flex items-center">
+        <div class="mr-4">
+          <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 0 002-2zm0 0V9a2 2 0 012-2h2a2 0 012 2v10m-6 0a2 2 0 002 2h2a2 0 002-2m0 0V5a2 2 0 012-2h2a2 0 012 2v14a2 2 0 01-2 2h-2a2 0 01-2-2z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-sm font-medium text-gray-500">Completion Rate</h2>
+          <p class="text-2xl font-bold text-purple-600" id="completion-rate">0%</p>
+        </div>
+      </div>
+
+      <!-- Avg. Completion Time -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6 flex items-center">
+        <div class="mr-4">
+          <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-sm font-medium text-gray-500">Avg. Duration</h2>
+          <p class="text-2xl font-bold text-yellow-600" id="avg-duration">0 days</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Productivity Overview -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+      <!-- Tasks Trend -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-yellow-700 mb-4">Task Completion Trend</h2>
+        <canvas id="timeChart" height="250"></canvas>
+      </div>
+
+      <!-- Task Distribution -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-yellow-700 mb-4">Task Distribution</h2>
+        <div class="flex">
+          <div class="w-2/3">
+            <canvas id="categoryChart" height="250"></canvas>
+          </div>
+          <div class="w-1/3 pl-4 flex flex-col justify-center">
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-gray-500">Most Productive Day</h3>
+              <p class="text-lg font-bold">Wednesday</p>
+            </div>
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-gray-500">Peak Hours</h3>
+              <p class="text-lg font-bold">10AM - 12PM</p>
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-500">Current Streak</h3>
+              <p class="text-lg font-bold">7 days</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+      <!-- Priority Breakdown -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-yellow-700 mb-4">Priority Breakdown</h2>
+        <canvas id="priorityChart" height="250"></canvas>
+      </div>
+
+      <!-- Weekly Heatmap -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-yellow-700 mb-4">Weekly Productivity</h2>
+        <div class="heatmap-container">
+          <div class="grid grid-cols-8 gap-1"></div>
+        </div>
+        <div class="mt-4 flex justify-between text-xs text-gray-500">
+          <span>Less</span>
+          <div class="flex space-x-1">
+            <div class="w-4 h-4 bg-green-50 rounded-sm"></div>
+            <div class="w-4 h-4 bg-green-100 rounded-sm"></div>
+            <div class="w-4 h-4 bg-green-200 rounded-sm"></div>
+            <div class="w-4 h-4 bg-green-300 rounded-sm"></div>
+            <div class="w-4 h-4 bg-green-400 rounded-sm"></div>
+            <div class="w-4 h-4 bg-green-500 rounded-sm"></div>
+          </div>
+          <span>More</span>
+        </div>
+      </div>
+
+      <!-- Habit Consistency -->
+      <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-yellow-700 mb-4">Habit Consistency</h2>
+        <canvas id="habitChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <!-- Task Performance -->
+    <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6 mb-10 task-performance">
+      <h2 class="text-xl font-semibold text-yellow-700 mb-4">Task Performance</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tasks</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Rate</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Duration</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Productivity Tips -->
+    <div class="bg-white/90 backdrop-blur-md border border-gray-300 rounded-2xl shadow-md p-6">
+      <h2 class="text-xl font-semibold text-yellow-700 mb-4">Productivity Recommendations</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 productivity-recommendations"></div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="w-full text-center py-4 bg-white/80 border-t border-gray-300">
+    <p class="text-sm text-gray-700">&copy; 2025 <span class="font-semibold text-yellow-700">Task Manager Pro</span>. All rights reserved.</p>
+  </footer>
+
+  <!-- Chart.js Script -->
+  <script>
+    // Data from the backend
+    const priorityCounts = {
+      Low: parseInt("{{ priority_counts['Low']|default(0) }}", 10),
+      Medium: parseInt("{{ priority_counts['Medium']|default(0) }}", 10),
+      High: parseInt("{{ priority_counts['High']|default(0) }}", 10)
+    };
+
+    const categoryCounts = {
+      Yearly: parseInt("{{ category_counts['Yearly']|default(0) }}", 10),
+      Monthly: parseInt("{{ category_counts['Monthly']|default(0) }}", 10),
+      Weekly: parseInt("{{ category_counts['Weekly']|default(0) }}", 10),
+      Daily: parseInt("{{ category_counts['Daily']|default(0) }}", 10)
+    }
+
+    const taskPerformance = JSON.parse('{{ task_performance | tojson | safe }}');
+    const taskTrend = JSON.parse('{{ task_trend | tojson | safe }}');
+    const taskCompletionTrend = JSON.parse('{{ task_completion_trend | tojson | safe }}');
+    const weeklyProductivity = JSON.parse('{{ weekly_productivity | tojson | safe }}');
+    const habitConsistency = JSON.parse('{{ habit_consistency | tojson | safe }}');
+    const recommendations = JSON.parse('{{ recommendations | tojson | safe }}');
+
+    // Time Chart (Trend)
+    const timeCtx = document.getElementById('timeChart').getContext('2d');
+    new Chart(timeCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        datasets: [
+          {
+            label: 'Tasks Created',
+            data: taskTrend,
+            borderColor: '#60a5fa',
+            backgroundColor: 'rgba(96, 165, 250, 0.1)',
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'Tasks Completed',
+            data: taskCompletionTrend,
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        }
+      }
+    });
+
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Yearly', 'Monthly', 'Weekly', 'Daily'],
+        datasets: [{
+          data: [categoryCounts.Yearly, categoryCounts.Monthly, categoryCounts.Weekly, categoryCounts.Daily],
+          backgroundColor: ['#60a5fa', '#a78bfa', '#f472b6', '#34d399'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'right',
+          }
+        },
+        cutout: '70%'
+      }
+    });
+
+    // Priority Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    new Chart(priorityCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Low', 'Medium', 'High'],
+        datasets: [{
+          label: 'Tasks by Priority',
+          data: [priorityCounts.Low, priorityCounts.Medium, priorityCounts.High],
+          backgroundColor: ['#34d399', '#fbbf24', '#f87171'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    // Habit Chart
+    const habitCtx = document.getElementById('habitChart').getContext('2d');
+    new Chart(habitCtx, {
+      type: 'radar',
+      data: {
+        labels: Object.keys(habitConsistency),
+        datasets: [{
+          label: 'Consistency',
+          data: Object.values(habitConsistency),
+          backgroundColor: 'rgba(251, 191, 36, 0.2)',
+          borderColor: 'rgba(251, 191, 36, 1)',
+          pointBackgroundColor: 'rgba(251, 191, 36, 1)',
+          pointBorderColor: '#fff',
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            angleLines: {
+              display: true
+            },
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: {
+              stepSize: 20
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      }
+    });
+
+    // Heatmap generation
+    const heatmapContainer = document.querySelector('.heatmap-container .grid');
+    heatmapContainer.innerHTML = ''; // Clear existing heatmap
+
+    const timeSlots = ['6-9AM', '9AM-12PM', '12-3PM', '3-6PM'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    timeSlots.forEach((slot, slotIndex) => {
+      // Add time slot label
+      const timeSlotLabel = document.createElement('div');
+      timeSlotLabel.className = 'text-xs text-right pr-1 text-gray-500';
+      timeSlotLabel.textContent = slot;
+      heatmapContainer.appendChild(timeSlotLabel);
+
+      // Add heatmap cells for each day
+      days.forEach((day, dayIndex) => {
+        const cell = document.createElement('div');
+        const taskCount = weeklyProductivity[slotIndex][dayIndex];
+        const intensity = Math.min(taskCount, 5); // Cap intensity at 5
+        cell.className = `heatmap-cell bg-green-${intensity * 100}`;
+        cell.title = `${day} ${slot}: ${taskCount} tasks`;
+        heatmapContainer.appendChild(cell);
+      });
+    });
+
+    // Time range selector
+    document.getElementById('timeRange').addEventListener('change', function() {
+      console.log('Time range changed to:', this.value);
+      // Fetch new data based on the selected range and update charts
+    });
+
+    // Export button
+    document.getElementById('export-btn').addEventListener('click', function() {
+      alert('Export functionality would be implemented here');
+      // Generate a PDF or CSV report in a real app
+    });
+
+    // Task Performance Table
+    const performanceTableBody = document.querySelector('.task-performance tbody');
+    performanceTableBody.innerHTML = ''; // Clear existing rows
+
+    Object.entries(taskPerformance).forEach(([category, data]) => {
+      const row = document.createElement('tr');
+      const completionRate = ((data.completed / data.total) * 100).toFixed(1);
+
+      row.innerHTML = `
+        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">${category}</td>
+        <td class="px-4 py-3 whitespace-nowrap text-sm">${data.total}</td>
+        <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600">${data.completed}</td>
+        <td class="px-4 py-3 whitespace-nowrap text-sm">${completionRate}%</td>
+        <td class="px-4 py-3 whitespace-nowrap text-sm">N/A</td>
+      `;
+      performanceTableBody.appendChild(row);
+    });
+
+    // Productivity Recommendations
+    const recommendationsContainer = document.querySelector('.productivity-recommendations');
+    recommendationsContainer.innerHTML = ''; // Clear existing recommendations
+
+    recommendations.forEach(rec => {
+      const card = document.createElement('div');
+      card.className = `bg-${rec.color}-50/50 border border-${rec.color}-100 rounded-lg p-4`;
+      card.innerHTML = `
+        <h3 class="font-medium text-${rec.color}-800 mb-2">${rec.title}</h3>
+        <p class="text-sm text-${rec.color}-700">${rec.description}</p>
+      `;
+      recommendationsContainer.appendChild(card);
+    });
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        // Fetch analytics data from the backend
+        const response = await fetch('/api/analytics');
+        if (!response.ok) throw new Error('Failed to fetch analytics data');
+        const data = await response.json();
+
+        // Update key metrics
+        document.getElementById('total-tasks').textContent = data.totalTasks;
+        document.getElementById('completed-tasks').textContent = data.completedTasks;
+        document.getElementById('completion-rate').textContent = `${data.completionRate}%`;
+        document.getElementById('avg-duration').textContent = `${data.avgDuration} days`;
+
+        // Update Task Completion Trend Chart
+        const timeCtx = document.getElementById('timeChart').getContext('2d');
+        new Chart(timeCtx, {
+          type: 'line',
+          data: {
+            labels: ['6 Days Ago', '5 Days Ago', '4 Days Ago', '3 Days Ago', '2 Days Ago', 'Yesterday', 'Today'],
+            datasets: [
+              {
+                label: 'Tasks Completed',
+                data: data.trend,
+                borderColor: '#34d399',
+                backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                fill: true,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+              },
+            },
+            interaction: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false,
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Days',
+                },
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Tasks Completed',
+                },
+              },
+            },
+          },
+        });
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+      }
+    });
+
+    setInterval(async function () {
+      try {
+        const response = await fetch('/api/analytics');
+        if (!response.ok) throw new Error('Failed to fetch analytics data');
+        const data = await response.json();
+
+        // Update metrics and charts here
+        document.getElementById('total-tasks').textContent = data.totalTasks;
+        document.getElementById('completed-tasks').textContent = data.completedTasks;
+        document.getElementById('completion-rate').textContent = `${data.completionRate}%`;
+        document.getElementById('avg-duration').textContent = `${data.avgDuration} days`; // Update Avg. Duration
+
+        // Update charts...
+      } catch (error) {
+        console.error('Error updating analytics data:', error);
+      }
+    }, 60000); // Update every 60 seconds
+  </script>
+</body>
+</html>
+
+<script>
+const express = require('express');
+const router = express.Router();
+const Task = require('./models/Task'); // Your database model for tasks
+
+const mongoose = require('mongoose');
+
+const TaskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: String,
+  deadline: { type: Date, required: true },
+  priority: { type: String, enum: ['Low', 'Medium', 'High'], required: true },
+  category: { type: String, enum: ['daily', 'weekly', 'monthly', 'yearly'], required: true },
+  status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
+  createdAt: { type: Date, default: Date.now },
+  completedAt: { type: Date }, // Add this field to track when the task was completed
+});
+
+module.exports = mongoose.model('Task', TaskSchema);
+
+// Get analytics data
+router.get('/api/analytics', async (req, res) => {
+  try {
+    const tasks = await Task.find();
+
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(task => task.status === 'completed').length;
+    const completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0;
+
+    const priorityCounts = tasks.reduce((acc, task) => {
+      acc[task.priority] = (acc[task.priority] || 0) + 1;
+      return acc;
+    }, { Low: 0, Medium: 0, High: 0 });
+
+    const categoryCounts = tasks.reduce((acc, task) => {
+      acc[task.category] = (acc[task.category] || 0) + 1;
+      return acc;
+    }, { daily: 0, weekly: 0, monthly: 0, yearly: 0 });
+
+    // Calculate average duration for completed tasks
+    const completedDurations = tasks
+      .filter(task => task.status === 'completed' && task.completedAt)
+      .map(task => {
+        const createdAt = new Date(task.createdAt);
+        const completedAt = new Date(task.completedAt);
+        return (completedAt - createdAt) / (1000 * 60 * 60 * 24); // Convert milliseconds to days
+      });
+
+    const avgDuration = completedDurations.length > 0
+      ? (completedDurations.reduce((sum, duration) => sum + duration, 0) / completedDurations.length).toFixed(1)
+      : 0;
+
+    res.json({
+      totalTasks,
+      completedTasks,
+      completionRate,
+      priorityCounts,
+      categoryCounts,
+      avgDuration,
+    });
+  } catch (error) {
+    res.status(500).send('Server Error');
+  }
+});
+
+module.exports = router;
+</script>

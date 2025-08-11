@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #d7d7d7, #f1f1f1);
+    }
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .fade-in-up {
+      animation: fadeInUp 1.2s ease-out both;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col" data-theme="{{ settings.theme }}">
+
+  <main class="flex-grow flex items-center justify-center w-full">
+    <div class="fade-in-up bg-white/90 backdrop-blur-md border border-gray-300 shadow-2xl rounded-3xl p-10 max-w-xl w-full text-center transition-transform duration-300 hover:scale-[1.01]">
+      <h1 class="text-4xl font-bold text-yellow-700 mb-4 animate-pulse">{{ translation['welcome'] }}</h1>
+      <p class="text-lg text-gray-700 mb-8">{{ translation['organize_tasks'] }}</p>
+
+      <div class="flex justify-center gap-6">
+        <a href="/login"
+           class="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-full shadow-lg transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-sign-in-alt mr-2"></i> {{ translation['login'] }}
+        </a>
+        <a href="/signup"
+           class="px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white font-semibold rounded-full shadow-lg transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-user-plus mr-2"></i> {{ translation['signup'] }}
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="w-full text-center py-4 bg-white/80 backdrop-blur-sm border-t border-gray-300">
+    <p class="text-sm text-gray-700">&copy; 2025 <span class="font-semibold text-yellow-700">Stone Industries</span>. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

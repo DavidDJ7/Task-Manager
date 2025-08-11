@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ translation['settings']['title'] }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+      [data-theme="dark"] {
+        --tw-bg-opacity: 1;
+        background-color: rgba(31, 41, 55, var(--tw-bg-opacity)); /* Tailwind's gray-800 */
+        color: rgba(229, 231, 235, var(--tw-text-opacity)); /* Tailwind's gray-200 */
+      }
+      [data-theme="dark"] .bg-white {
+        background-color: rgba(55, 65, 81, var(--tw-bg-opacity)); /* Tailwind's gray-700 */
+      }
+      [data-theme="dark"] .text-gray-900 {
+        color: rgba(229, 231, 235, var(--tw-text-opacity)); /* Tailwind's gray-200 */
+      }
+      [data-theme="dark"] .border-gray-300 {
+        border-color: rgba(75, 85, 99, var(--tw-border-opacity)); /* Tailwind's gray-600 */
+      }
+      [data-theme="dark"] .bg-white\/90 {
+        background-color: rgba(55, 65, 81, 0.9); /* Tailwind's gray-700 with opacity */
+      }
+      [data-theme="dark"] .text-gray-600 {
+        color: rgba(156, 163, 175, var(--tw-text-opacity)); /* Tailwind's gray-400 */
+      }
+      [data-theme="dark"] .text-gray-700 {
+        color: rgba(209, 213, 219, var(--tw-text-opacity)); /* Tailwind's gray-300 */
+      }
+      [data-theme="dark"] .bg-gray-100 {
+        background-color: rgba(31, 41, 55, var(--tw-bg-opacity)); /* Tailwind's gray-800 */
+      }
+      [data-theme="dark"] .bg-gray-200 {
+        background-color: rgba(55, 65, 81, var(--tw-bg-opacity)); /* Tailwind's gray-700 */
+      }
+      [data-theme="dark"] .hover\:text-yellow-600:hover {
+        color: rgba(234, 179, 8, var(--tw-text-opacity)); /* Tailwind's yellow-500 */
+      }
+      [data-theme="dark"] .hover\:bg-yellow-600:hover {
+        background-color: rgba(202, 138, 4, var(--tw-bg-opacity)); /* Tailwind's yellow-600 */
+      }
+      [data-theme="dark"] .border-t {
+        border-color: rgba(75, 85, 99, var(--tw-border-opacity)); /* Tailwind's gray-600 */
+      }
+      [data-theme="dark"] .text-yellow-700 {
+        color: rgba(234, 179, 8, var(--tw-text-opacity)); /* Tailwind's yellow-500 */
+      }
+      [data-theme="dark"] .bg-white\/80 {
+        background-color: rgba(55, 65, 81, 0.8); /* Tailwind's gray-700 with opacity */
+      }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gray-100" data-theme="{{ settings.theme }}">
+
+  <!-- Include Navbar -->
+  {% include 'partials/navbar.html' %}
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-yellow-700 mb-6">{{ translation['settings']['title'] }}</h1>
+
+    <form action="/update_settings" method="POST" class="space-y-6">
+      <!-- Language Setting -->
+      <div>
+        <label for="language" class="block text-lg font-medium text-gray-700">
+          <i class="fas fa-language mr-2"></i>{{ translation['settings']['language'] }}
+        </label>
+        <select name="language" id="language" class="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <option value="english" {% if settings.language == 'english' %}selected{% endif %}>English</option>
+          <option value="tamil" {% if settings.language == 'tamil' %}selected{% endif %}>தமிழ்</option>
+          <option value="hindi" {% if settings.language == 'hindi' %}selected{% endif %}>हिंदी</option>
+        </select>
+      </div>
+
+      <!-- Theme Setting -->
+      <div>
+        <label for="theme" class="block text-lg font-medium text-gray-700">
+          <i class="fas fa-paint-brush mr-2"></i>{{ translation['settings']['theme'] }}
+        </label>
+        <select name="theme" id="theme" class="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>Light</option>
+          <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>Dark</option>
+        </select>
+      </div>
+
+      <!-- Export/Import Data -->
+      <div>
+        <h2 class="text-xl font-medium text-gray-700">
+          <i class="fas fa-file-export mr-2"></i>{{ translation['settings']['export_data'] }}
+        </h2>
+        <div class="flex gap-4 mt-4">
+          <a href="/export_data" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg shadow-md flex items-center">
+            <i class="fas fa-download mr-2"></i>{{ translation['settings']['export_data'] }}
+          </a>
+          <input type="file" name="import_file" id="import_file" class="hidden">
+          <label for="import_file" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md cursor-pointer flex items-center">
+            <i class="fas fa-upload mr-2"></i>{{ translation['settings']['import_data'] }}
+          </label>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="text-center">
+        <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg shadow-md font-semibold flex items-center justify-center">
+          <i class="fas fa-save mr-2"></i>{{ translation['settings']['save_settings'] }}
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Include Footer -->
+  {% include 'partials/footer.html' %}
+
+</body>
+</html>
