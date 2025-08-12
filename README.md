@@ -1,4 +1,4 @@
-# Task Manager AI
+# Task Manager 
 
 A simple AI-powered task manager web application built with Flask and MongoDB.
 
